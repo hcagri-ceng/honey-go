@@ -1,0 +1,8 @@
+# İşletim sistemi kalıntıları
+.DS_Store
+Thumbs.db
+
+# Derlenmiş dosyalar (bunları git'e atmayız)
+*.exe
+*.out
+/bin/
