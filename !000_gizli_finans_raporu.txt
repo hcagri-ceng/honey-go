@@ -1,1 +1,2 @@
 Bu bir honeypot dosyasıdır. Yetkisiz erisim loglanmaktadir. 151515
+111 23

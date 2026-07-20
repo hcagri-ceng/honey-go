@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honeygo | Canlı Tehdit İzleme Paneli</title>
+    <!-- Hackathon hızı için Tailwind'i CDN'den çekiyoruz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 font-mono p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Başlık -->
+        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-green-500">Honeygo Dashboard</h1>
+                <p class="text-sm text-gray-400 mt-1">Gerçek Zamanlı Bal Küpü İzleme Sistemi</p>
+            </div>
+            <div class="text-right">
+                <span class="inline-flex items-center bg-green-900 text-green-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    <span class="w-2 h-2 mr-1 bg-green-500 rounded-full animate-pulse"></span>
+                    Sistem Aktif
+                </span>
+                <div class="text-xs text-gray-500 mt-2" id="last-update">Son güncelleme: -</div>
+            </div>
+        </header>
+
+        <!-- İstatistikler -->
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-md">
+                <div class="text-gray-400 text-sm">Toplam Yakalanan Atak</div>
+                <div class="text-2xl font-bold text-white mt-1" id="stat-total">0</div>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-md">
+                <div class="text-gray-400 text-sm">Aktif Dinlenen Port</div>
+                <div class="text-2xl font-bold text-white mt-1">8080</div>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-md">
+                <div class="text-gray-400 text-sm">Veritabanı Durumu</div>
+                <div class="text-2xl font-bold text-green-400 mt-1">SQLite (Bağlı)</div>
+            </div>
+        </div>
+
+        <!-- Olaylar Tablosu -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 shadow-md overflow-hidden">
+            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-900 border-b border-gray-700">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold text-gray-300">Zaman (Timestamp)</th>
+                        <th class="px-6 py-4 font-semibold text-gray-300">Kaynak IP</th>
+                        <th class="px-6 py-4 font-semibold text-gray-300">Hedef Port</th>
+                        <th class="px-6 py-4 font-semibold text-gray-300">Payload Analizi</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="divide-y divide-gray-700">
+                    <!-- Veriler JS ile buraya gelecek -->
+                    <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri bekleniyor...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Go []byte array'lerini Base64 döner, ekranda okunabilir yapmak için çözüyoruz.
+        function decodePayload(base64str) {
+            if (!base64str) return '<span class="text-gray-500">Boş</span>';
+            try {
+                // btoa/atob ASCII karakterler içindir. 
+                const decoded = atob(base64str).substring(0, 80); // Çok uzunsa kes
+                // HTML injection engellemek için escape işlemi yapıyoruz
+                const escaped = decoded.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                return `<span class="text-yellow-400">${escaped}</span>`;
+            } catch (e) {
+                return '<span class="text-red-400">[Binary Data]</span>';
+            }
+        }
+
+        async function fetchEvents() {
+            try {
+                const response = await fetch('/api/events');
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('stat-total').innerText = result.count;
+                    
+                    const tbody = document.getElementById('table-body');
+                    tbody.innerHTML = ''; // Tabloyu temizle
+
+                    if (result.count === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Henüz atak kaydedilmedi.</td></tr>';
+                        return;
+                    }
+
+                    result.data.forEach(event => {
+                        const row = document.createElement('tr');
+                        row.className = "hover:bg-gray-700 transition duration-150";
+                        
+                        const date = new Date(event.Timestamp).toLocaleTimeString('tr-TR', { hour12: false });
+                        const payloadPreview = decodePayload(event.Payload);
+
+                        row.innerHTML = `
+                            <td class="px-6 py-3 text-gray-400">${date}</td>
+                            <td class="px-6 py-3 font-medium text-red-400">${event.SourceIP}:${event.SourcePort}</td>
+                            <td class="px-6 py-3 text-blue-400">${event.Protocol} / ${event.TargetPort}</td>
+                            <td class="px-6 py-3 truncate max-w-xs font-mono text-xs">${payloadPreview}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    document.getElementById('last-update').innerText = "Son güncelleme: " + new Date().toLocaleTimeString('tr-TR');
+                }
+            } catch (error) {
+                console.error("API'ye ulaşılamıyor:", error);
+            }
+        }
+
+        // Sayfa açıldığında çek ve her 2 saniyede bir tekrarla (Gerçek zamanlı hissiyatı)
+        fetchEvents();
+        setInterval(fetchEvents, 2000);
+    </script>
+</body>
+</html>

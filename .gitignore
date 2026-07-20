@@ -6,3 +6,5 @@ Thumbs.db
 *.exe
 *.out
 /bin/
+
+.db

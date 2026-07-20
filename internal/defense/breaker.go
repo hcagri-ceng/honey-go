@@ -6,20 +6,21 @@ import (
 	"runtime"
 )
 
-// IsolateNetwork bilgisayarın ağ bağlantısını donanımsal düzeyde keser.
+// IsolateNetwork, sistemin ağ ile olan fiziksel/mantıksal bağını anında keser.
 func IsolateNetwork() {
-	log.Println("[SAVUNMA] Ağ izolasyon protokolü başlatıldı!")
+	log.Println("!!! KRİTİK UYARI: HONEYTOKEN İHLALİ !!!")
+	log.Println("Ağ izolasyonu başlatılıyor (Kill-Switch)...")
 
 	if runtime.GOOS == "windows" {
-		// Windows'ta IP adresini serbest bırakarak interneti kesen komut
-		cmd := exec.Command("ipconfig", "/release")
-		err := cmd.Run()
-		if err != nil {
-			log.Printf("[HATA] Ağ kesilemedi: %v\n", err)
-			return
+		// Windows üzerinde Wi-Fi bağlantısını anında kesen komut
+		cmd := exec.Command("netsh", "wlan", "disconnect")
+		if err := cmd.Run(); err != nil {
+			log.Printf("Ağ kesilirken kritik hata (Manuel müdahale gerekebilir): %v\n", err)
+		} else {
+			log.Println("BAŞARILI: Wi-Fi bağlantısı koparıldı. Sistem izole edildi.")
 		}
-		log.Println("💥 BAĞLANTI KESİLDİ! Cihaz karantinaya alındı, yayılım durduruldu.")
 	} else {
-		log.Println("[UYARI] Bu işletim sistemi için ağ kesme komutu tanımlanmadı.")
+		// Eğer jüriye Linux/Mac'te gösterirsen diye fallback (Hackathon önlemi)
+		log.Printf("İzolasyon komutu %s için tanımlanmamış, ağ kesilemedi.\n", runtime.GOOS)
 	}
 }
